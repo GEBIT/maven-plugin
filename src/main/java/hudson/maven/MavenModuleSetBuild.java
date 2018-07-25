@@ -34,6 +34,7 @@ import hudson.maven.MavenBuild.ProxyImpl2;
 import hudson.maven.reporters.MavenAggregatedArtifactRecord;
 import hudson.maven.reporters.MavenFingerprinter;
 import hudson.maven.reporters.MavenMailer;
+import hudson.maven.util.RedeployFixUtils;
 import hudson.maven.util.VariableExpander;
 import hudson.model.AbstractProject;
 import hudson.model.Action;
@@ -808,12 +809,18 @@ public class MavenModuleSetBuild extends AbstractMavenBuild<MavenModuleSet,Maven
                             margs.add("-Dmaven.repo.local="+localRepo.getRemote());
 
                         FilePath remoteSettings = SettingsProvider.getSettingsFilePath(project.getSettings(), MavenModuleSetBuild.this, listener);
-                        if (remoteSettings != null)
+                        if (remoteSettings != null) {
                             margs.add("-s" , remoteSettings.getRemote());
+                            RedeployFixUtils.archiveMavenSettings(remoteSettings, MavenModuleSetBuild.this, launcher,
+                                    listener);
+                        }
 
                         FilePath remoteGlobalSettings = GlobalSettingsProvider.getSettingsFilePath(project.getGlobalSettings(), MavenModuleSetBuild.this, listener);
-                        if (remoteGlobalSettings != null)
+                        if (remoteGlobalSettings != null) {
                             margs.add("-gs" , remoteGlobalSettings.getRemote());
+                            RedeployFixUtils.archiveMavenGlobalSettings(remoteGlobalSettings, MavenModuleSetBuild.this,
+                                    launcher, listener);
+                        }
 
                         if (changedModules.isEmpty()) {
                             LOGGER.log(Level.FINER, "{0} was not configured to do incremental builds or had no changed modules, so skipping incremental build", MavenModuleSetBuild.this);
