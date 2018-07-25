@@ -28,6 +28,7 @@ import hudson.maven.MavenEmbedder;
 import hudson.maven.MavenEmbedderException;
 import hudson.maven.MavenUtil;
 import hudson.maven.RedeployPublisher.WrappedArtifactRepository;
+import hudson.maven.util.RedeployFixUtils;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.Api;
@@ -223,18 +224,23 @@ public abstract class MavenAbstractArtifactRecord<T extends AbstractBuild<?,?>> 
         new TaskThread(this,ListenerAndText.forFile(logFile,this)) {
             protected void perform(TaskListener listener) throws Exception {
                 try {
-                    MavenEmbedder embedder = MavenUtil.createEmbedder(listener,getBuild());
-                    ArtifactRepositoryLayout layout =
-                        embedder.lookup( ArtifactRepositoryLayout.class,"default");
-                    ArtifactRepositoryFactory factory =
-                        (ArtifactRepositoryFactory) embedder.lookup(ArtifactRepositoryFactory.ROLE);
+                    if (RedeployFixUtils.useFixedRedeploy()) {
+                        record.result = RedeployFixUtils.performRedeploy(MavenAbstractArtifactRecord.this, getBuild(),
+                                listener, id, repositoryUrl, uniqueVersion);
+                    } else {
+                        MavenEmbedder embedder = MavenUtil.createEmbedder(listener,getBuild());
+                        ArtifactRepositoryLayout layout =
+                            embedder.lookup( ArtifactRepositoryLayout.class,"default");
+                        ArtifactRepositoryFactory factory =
+                            (ArtifactRepositoryFactory) embedder.lookup(ArtifactRepositoryFactory.ROLE);
 
-                    ArtifactRepository repository = factory.createDeploymentArtifactRepository(
-                            id, repositoryUrl, layout, uniqueVersion);
-                    WrappedArtifactRepository repo = new WrappedArtifactRepository(repository, uniqueVersion);
-                    deploy(embedder,repo,listener);
+                        ArtifactRepository repository = factory.createDeploymentArtifactRepository(
+                                id, repositoryUrl, layout, uniqueVersion);
+                        WrappedArtifactRepository repo = new WrappedArtifactRepository(repository, uniqueVersion);
+                        deploy(embedder,repo,listener);
 
-                    record.result = Result.SUCCESS;
+                        record.result = Result.SUCCESS;
+                    }
                 } finally {
                     if(record.result==null)
                         record.result = Result.FAILURE;
