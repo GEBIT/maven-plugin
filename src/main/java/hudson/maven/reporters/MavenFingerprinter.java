@@ -36,6 +36,7 @@ import hudson.maven.MavenReporterDescriptor;
 import hudson.maven.MojoInfo;
 import hudson.model.BuildListener;
 import hudson.model.FingerprintMap;
+import hudson.tasks.Fingerprinter;
 import hudson.tasks.Fingerprinter.FingerprintAction;
 
 import java.io.File;
@@ -109,31 +110,7 @@ public class MavenFingerprinter extends MavenReporter {
         
         recordParents(build, pom, listener);
         
-        build.executeAsync(new BuildCallable<Void,IOException>() {
-            private static final long serialVersionUID = -1360161848504044869L;
-
-            // record is transient, so needs to make a copy first
-            private final Map<String,String> u = used;
-            private final Map<String,String> p = produced;
-
-            public Void call(MavenBuild build) throws IOException, InterruptedException {
-                FingerprintMap map = Jenkins.getInstance().getFingerprintMap();
-
-                for (Entry<String, String> e : p.entrySet())
-                    map.getOrCreate(build, e.getKey(), e.getValue()).add(build);
-                for (Entry<String, String> e : u.entrySet())
-                    map.getOrCreate(null, e.getKey(), e.getValue()).add(build);
-
-                Map<String,String> all = new HashMap<String, String>(u);
-                all.putAll(p);
-
-                // add action
-                FingerprintAction fa = build.getAction(FingerprintAction.class);
-                if (fa!=null)   fa.add(all);
-                else            build.getActions().add(new FingerprintAction(build,all));
-                return null;
-            }
-        });
+        build.executeAsync(new PostBuildCallable());
         return true;
     }
 
@@ -236,7 +213,7 @@ public class MavenFingerprinter extends MavenReporter {
      * by aggregating all fingerprints from module builds.
      */
     public static void aggregate(MavenModuleSetBuild mmsb) throws IOException {
-        Map<String,String> records = new HashMap<String, String>();
+        Map<String,String> records = new HashMap<>();
         for (List<MavenBuild> builds : mmsb.getModuleBuilds().values()) {
             for (MavenBuild build : builds) {
                 FingerprintAction fa = build.getAction(FingerprintAction.class);
@@ -255,4 +232,30 @@ public class MavenFingerprinter extends MavenReporter {
     private static final long serialVersionUID = 1L;
     
     private static final Logger LOGGER = Logger.getLogger(MavenFingerprinter.class.getName());
+
+    private class PostBuildCallable implements BuildCallable<Void,IOException> {
+        private static final long serialVersionUID = -1360161848504044869L;
+
+        // record is transient, so needs to make a copy first
+        private final Map<String,String> u = used;
+        private final Map<String,String> p = produced;
+
+        public Void call(MavenBuild build) throws IOException, InterruptedException {
+            FingerprintMap map = Jenkins.getInstance().getFingerprintMap();
+
+            for (Entry<String, String> e : p.entrySet())
+                map.getOrCreate(build, e.getKey(), e.getValue()).add(build);
+            for (Entry<String, String> e : u.entrySet())
+                map.getOrCreate(null, e.getKey(), e.getValue()).add(build);
+
+            Map<String,String> all = new HashMap<String, String>(u);
+            all.putAll(p);
+
+            // add action
+            FingerprintAction fa = build.getAction(FingerprintAction.class);
+            if (fa!=null)   fa.add(all);
+            else            build.getActions().add(new FingerprintAction(build,all));
+            return null;
+        }
+    }
 }
