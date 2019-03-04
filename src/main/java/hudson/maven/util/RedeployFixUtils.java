@@ -12,9 +12,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 
@@ -142,11 +140,13 @@ public class RedeployFixUtils {
 
 	/**
 	 * Redeploy artefcts. Fixed several problems:<br>
+	 * <ul>
 	 * <li>use repo id and url from initail deploy if no id and url specified by
 	 * query</li>
 	 * <li>redeploy even if the slave where build was executed doesn't exist
 	 * anymore</li>
 	 * <li>fixed redeployment of artefacts from single modules</li>
+	 * </ul>
 	 *
 	 * @param artifactRecord the deploy record to be redeployed
 	 * @param build          the build which artifacts have to be redeployed
