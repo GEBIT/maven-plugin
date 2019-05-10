@@ -57,6 +57,7 @@ import jenkins.MasterToSlaveFileCallable;
 import jenkins.maven3.agent.Maven31Main;
 import jenkins.maven3.agent.Maven32Main;
 import jenkins.maven3.agent.Maven33Main;
+import jenkins.maven3.agent.Maven35Main;
 
 import org.apache.maven.BuildFailureException;
 import org.apache.maven.execution.MavenSession;
@@ -68,6 +69,7 @@ import org.jvnet.hudson.maven3.agent.Maven3Main;
 import org.jvnet.hudson.maven3.launcher.Maven31Launcher;
 import org.jvnet.hudson.maven3.launcher.Maven32Launcher;
 import org.jvnet.hudson.maven3.launcher.Maven33Launcher;
+import org.jvnet.hudson.maven3.launcher.Maven35Launcher;
 import org.jvnet.hudson.maven3.launcher.Maven3Launcher;
 import org.kohsuke.stapler.Ancestor;
 import org.kohsuke.stapler.Stapler;
@@ -80,8 +82,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.Serializable;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -365,11 +370,29 @@ public class MavenBuild extends AbstractMavenBuild<MavenModule,MavenBuild> {
             
             final ProjectSorter sorter;
             try {
-                sorter = new ProjectSorter(sortedProjects);
-            } catch(CycleDetectedException ex) {
-                throw new BuildFailureException("Cannot retrieve the top-level project due to the cycle", ex);
-            } catch(DuplicateProjectException ex) {
-                throw new BuildFailureException("Cannot retrieve the duplicate in the project list", ex);
+                Constructor<ProjectSorter> constr = null;
+                try {
+                    constr = ProjectSorter.class.getConstructor(List.class);
+                } catch (NoSuchMethodException ex) {
+                    constr = ProjectSorter.class.getConstructor(Collection.class);
+                }
+                if (constr == null) {
+                    throw new BuildFailureException("Cannot retrieve the top-level project: no suitable ProjectSorter constructor found.");
+                }
+                sorter = constr.newInstance(sortedProjects);
+            } catch (BuildFailureException ex) {
+                throw ex;
+            } catch (InvocationTargetException ex) {
+                Throwable constructorException = ex.getTargetException();
+                if (constructorException instanceof CycleDetectedException) {
+                    throw new BuildFailureException("Cannot retrieve the top-level project due to the cycle", constructorException);
+                } else if (constructorException instanceof DuplicateProjectException) {
+                    throw new BuildFailureException("Cannot retrieve the duplicate in the project list", constructorException);
+                } else {
+                    throw new BuildFailureException("", constructorException);
+                }
+            } catch (Exception ex) {
+                throw new BuildFailureException("Failed to create ProjectSorter instance", ex);
             }
             return sorter.getTopLevelProject();
         }
@@ -974,9 +997,13 @@ public class MavenBuild extends AbstractMavenBuild<MavenModule,MavenBuild> {
 	                request.maven3MainClass = Maven32Main.class;
 	                request.maven3LauncherClass = Maven32Launcher.class;
 	                break;
-                default:
+                case MAVEN_3_3:
                     request.maven3MainClass = Maven33Main.class;
                     request.maven3LauncherClass = Maven33Launcher.class;
+                    break;
+                default:
+                    request.maven3MainClass = Maven35Main.class;
+                    request.maven3LauncherClass = Maven35Launcher.class;
             }
 
             return request;

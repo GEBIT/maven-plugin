@@ -19,7 +19,7 @@ public class AbortedMavenBuildTest extends AbstractMavenTestCase {
         project.getBuildWrappersList().add(wrapper);
         project.getReporters().add(new AbortingReporter());
         project.setGoals("clean");
-        project.setScm(new ExtractResourceSCM(getClass().getResource("maven-empty-mod.zip")));
+        project.setScm(new ExtractResourceSCM(getClass().getResource("maven-multimod.zip")));
         MavenModuleSetBuild build = project.scheduleBuild2(0).get();
         assertEquals(Result.ABORTED, build.getResult());
         assertEquals(Result.ABORTED, wrapper.buildResultInTearDown);

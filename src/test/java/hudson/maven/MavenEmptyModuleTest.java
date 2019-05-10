@@ -7,6 +7,7 @@ import org.jvnet.hudson.test.ExtractResourceSCM;
 
 import hudson.Launcher;
 import hudson.model.BuildListener;
+import hudson.model.Result;
 
 import java.io.IOException;
 import org.jvnet.hudson.test.ToolInstallations;
@@ -24,7 +25,9 @@ public class MavenEmptyModuleTest extends AbstractMavenTestCase {
         MavenModuleSet m = jenkins.createProject(MavenModuleSet.class, "p");
         m.getReporters().add(new TestReporter());
         m.setScm(new ExtractResourceSCM(getClass().getResource("maven-empty-mod.zip")));
-        buildAndAssertSuccess(m);
+        MavenModuleSetBuild build = m.scheduleBuild2(0).get();
+        assertBuildStatus(Result.FAILURE, build);
+        assertTrue(build.getLog().contains("[ERROR] 'modules.module[1]'"));
     }
     
     private static class TestReporter extends MavenReporter {

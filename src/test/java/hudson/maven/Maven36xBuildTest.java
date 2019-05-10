@@ -1,7 +1,7 @@
 package hudson.maven;
 
 /*
- * Olivier Lamy
+ * GEBIT Solutions GmbH
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -20,19 +20,23 @@ package hudson.maven;
  * under the License.
  */
 
+import hudson.tasks.Maven;
 import hudson.tasks.Maven.MavenInstallation;
 import org.jvnet.hudson.test.ToolInstallations;
 
 /**
- * @author Olivier Lamy
+ * @author GEBIT Solutions GmbH
  */
-public class Maven30xBuildTest
+public class Maven36xBuildTest
     extends AbstractMaven3xBuildTest {
 
     @Override
     public MavenInstallation configureMaven3x()
         throws Exception
     {
-		return ToolInstallations.configureMaven3();
+        MavenInstallation mvn = ToolInstallations.configureDefaultMaven("apache-maven-3.6.0", MavenInstallation.MAVEN_30);
+        MavenInstallation m3 = new MavenInstallation("apache-maven-3.6.0", mvn.getHome(), j.NO_PROPERTIES);
+        j.jenkins.getDescriptorByType(Maven.DescriptorImpl.class).setInstallations(m3);
+        return m3;
     }
 }

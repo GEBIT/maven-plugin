@@ -45,7 +45,7 @@ THE SOFTWARE.
   <properties>
     <jenkins.version>1.625.3</jenkins.version>
     <java.level>7</java.level>
-    <mavenInterceptorsVersion>1.12</mavenInterceptorsVersion>
+    <mavenInterceptorsVersion>1.12-gebit1</mavenInterceptorsVersion>
     <!-- Version of Maven Components -->
     <mavenVersion>3.5.0</mavenVersion>
     <!--
@@ -53,11 +53,11 @@ THE SOFTWARE.
       It declares version of the core, which should be included into the the server-side.
       Note that the plugin still bundles agent support for Maven 3.0.5, probably it's not really operational
     -->
-    <mavenMinimalVersion>3.1.0</mavenMinimalVersion>
+    <mavenMinimalVersion>3.3.1</mavenMinimalVersion>
     <maven.version>${mavenVersion}</maven.version>
     <aetherVersion>1.1.0</aetherVersion>
     <sisuInjectVersion>0.3.3</sisuInjectVersion>
-    <wagonVersion>3.0.0</wagonVersion>
+    <wagonVersion>3.1.0</wagonVersion>
     <!--TODO: change to true after the code cleanup-->
     <findbugs.failOnError>false</findbugs.failOnError>
     <!-- well the parent pom could defined an empty one instead of causing failure!! -->
@@ -229,6 +229,10 @@ THE SOFTWARE.
           <groupId>org.apache.maven</groupId>
           <artifactId>maven-core</artifactId>
         </exclusion>
+        <exclusion>
+          <groupId>org.apache.maven</groupId>
+          <artifactId>maven-repository-metadata</artifactId>
+        </exclusion>
       </exclusions>
     </dependency>
 
@@ -364,6 +368,17 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.apache.maven</groupId>
       <artifactId>maven-core</artifactId>
+      <version>${mavenMinimalVersion}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.sonatype.sisu</groupId>
+          <artifactId>sisu-guice</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.maven</groupId>
+      <artifactId>maven-repository-metadata</artifactId>
       <version>${mavenMinimalVersion}</version>
     </dependency>  
     <dependency>
@@ -541,7 +556,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.codehaus.plexus</groupId>
       <artifactId>plexus-utils</artifactId>
-      <version>3.0.24</version>
+      <version>3.1.0</version>
     </dependency>
     <dependency>
       <groupId>org.codehaus.plexus</groupId>
@@ -552,13 +567,13 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.jenkins-ci.lib</groupId>
       <artifactId>lib-jenkins-maven-artifact-manager</artifactId>
-      <version>1.2</version>
+      <version>1.3-gebit1</version>
     </dependency>
     <dependency>
       <!-- TODO: fix exclusion once updated to the 3.5.0 baseline -->
       <groupId>org.jenkins-ci.lib</groupId>
       <artifactId>lib-jenkins-maven-embedder</artifactId>
-      <version>3.13</version>
+      <version>3.13-gebit1</version>
       <exclusions>
         <exclusion><!-- we'll add our own patched version. see https://issues.jenkins-ci.org/browse/JENKINS-1680 -->
           <groupId>jtidy</groupId>
@@ -621,6 +636,11 @@ THE SOFTWARE.
           <!-- Offered by HttpComponents Client 4.x API plugin and by Maven on the remote side -->
           <groupId>org.apache.httpcomponents</groupId>
           <artifactId>httpcore</artifactId>
+        </exclusion>
+        <exclusion>
+          <!-- Offered by HttpComponents Client 4.x API plugin and by Maven on the remote side -->
+          <groupId>org.apache.httpcomponents</groupId>
+          <artifactId>httpclient</artifactId>
         </exclusion>
       </exclusions>
     </dependency>
