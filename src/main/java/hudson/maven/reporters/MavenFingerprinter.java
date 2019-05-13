@@ -240,6 +240,7 @@ public class MavenFingerprinter extends MavenReporter {
         private final Map<String,String> u = used;
         private final Map<String,String> p = produced;
 
+        @Override
         public Void call(MavenBuild build) throws IOException, InterruptedException {
             FingerprintMap map = Jenkins.getInstance().getFingerprintMap();
 

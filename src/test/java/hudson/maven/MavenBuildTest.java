@@ -277,20 +277,7 @@ public class MavenBuildTest {
         }
 
         private void stop(MavenBuildProxy build) throws IOException, InterruptedException {
-            build.execute(new BuildCallable<Void, IOException>() {
-                private static final long serialVersionUID = 1L;
-
-                public Void call(MavenBuild build) throws InterruptedException, IOException {
-                    try {
-
-                        build.getParentBuild().doStop();
-                        System.out.println("Stopped");
-                    } catch (ServletException ex) {
-                        throw new IOException(ex);
-                    }
-                    return null;
-                }
-            });
+            build.execute(new AbortBuildCallable());
         }
     }
 
@@ -422,6 +409,22 @@ public class MavenBuildTest {
                     return true;
                 }
             };
+        }
+    }
+
+    private static class AbortBuildCallable implements BuildCallable<Void, IOException> {
+        private static final long serialVersionUID = 1L;
+
+        @Override
+        public Void call(MavenBuild build) throws InterruptedException, IOException {
+            try {
+
+                build.getParentBuild().doStop();
+                System.out.println("Stopped");
+            } catch (ServletException ex) {
+                throw new IOException(ex);
+            }
+            return null;
         }
     }
 }

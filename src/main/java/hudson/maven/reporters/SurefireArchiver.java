@@ -157,21 +157,7 @@ public class SurefireArchiver extends TestFailureDetector {
                 // final reference in order to serialize it:
                 final TestResult r = result;
                 
-                int failCount = build.execute(new BuildCallable<Integer, IOException>() {
-                        private static final long serialVersionUID = -1023888330720922136L;
-
-                        public Integer call(MavenBuild build) throws IOException, InterruptedException {
-                            SurefireReport sr = build.getAction(SurefireReport.class);
-                            if(sr==null)
-                                build.getActions().add(new SurefireReport(build, r, listener));
-                            else
-                                sr.setResult(r,listener);
-                            if(r.getFailCount()>0)
-                                build.setResult(Result.UNSTABLE);
-                            build.registerAsProjectAction(new FactoryImpl());
-                            return r.getFailCount();
-                        }
-                    });
+                int failCount = build.execute(new SurefireReportBuildCallable(r, listener));
                 
                 // if surefire plugin is going to kill maven because of a test failure,
                 // intercept that (or otherwise build will be marked as failure)
@@ -346,4 +332,29 @@ public class SurefireArchiver extends TestFailureDetector {
     }
 
     private static final long serialVersionUID = 1L;
+
+    private static class SurefireReportBuildCallable implements BuildCallable<Integer, IOException> {
+        private static final long serialVersionUID = -1023888330720922136L;
+
+        private TestResult r;
+        private BuildListener listener;
+
+        public SurefireReportBuildCallable(TestResult r, BuildListener listener) {
+            this.r = r;
+            this.listener = listener;
+        }
+
+        @Override
+        public Integer call(MavenBuild build) throws IOException, InterruptedException {
+            SurefireReport sr = build.getAction(SurefireReport.class);
+            if(sr==null)
+                build.getActions().add(new SurefireReport(build, r, listener));
+            else
+                sr.setResult(r,listener);
+            if(r.getFailCount()>0)
+                build.setResult(Result.UNSTABLE);
+            build.registerAsProjectAction(new FactoryImpl());
+            return r.getFailCount();
+        }
+    }
 }
