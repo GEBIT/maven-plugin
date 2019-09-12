@@ -43,7 +43,7 @@ THE SOFTWARE.
   <url>https://wiki.jenkins.io/display/JENKINS/Maven+Project+Plugin</url>
 
   <properties>
-    <jenkins.version>2.60.3</jenkins.version>
+    <jenkins.version>2.164</jenkins.version>
     <java.level>8</java.level>
     <mavenInterceptorsVersion>1.13</mavenInterceptorsVersion>
     <!-- Version of Maven Components -->
@@ -84,7 +84,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>mailer</artifactId>
-      <version>1.7</version>
+      <version>1.18</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
@@ -228,6 +228,10 @@ THE SOFTWARE.
         <exclusion>
           <groupId>org.apache.maven</groupId>
           <artifactId>maven-core</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.apache.maven</groupId>
+          <artifactId>maven-repository-metadata</artifactId>
         </exclusion>
       </exclusions>
     </dependency>
@@ -521,6 +525,12 @@ THE SOFTWARE.
       <version>0.1.54.2</version>
     </dependency>
     <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>git</artifactId>
+      <version>3.3.1</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>org.apache.maven.wagon</groupId>
       <artifactId>wagon-file</artifactId>
       <version>${wagonVersion}</version>
@@ -678,7 +688,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>token-macro</artifactId>
-      <version>1.10</version>
+      <version>1.12.1</version>
       <optional>true</optional>
     </dependency>
 
@@ -739,7 +749,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>promoted-builds</artifactId>
-      <version>2.23</version>
+      <version>2.27</version>
       <scope>test</scope>
       <exclusions>
         <exclusion>
