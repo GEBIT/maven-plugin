@@ -36,13 +36,14 @@ import hudson.maven.reporters.MavenFingerprinter;
 import hudson.maven.reporters.MavenMailer;
 import hudson.maven.util.RedeployFixUtils;
 import hudson.maven.util.VariableExpander;
+import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.Action;
-import hudson.model.Build;
 import hudson.model.BuildListener;
 import hudson.model.Cause.UpstreamCause;
 import hudson.model.Computer;
 import hudson.model.Environment;
+import hudson.model.EnvironmentContributingAction;
 import hudson.model.Executor;
 import hudson.model.Fingerprint;
 import hudson.model.Node;
@@ -108,6 +109,9 @@ import org.jvnet.hudson.maven3.launcher.*;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.export.Exported;
+
+import com.google.common.base.Strings;
+
 import org.eclipse.aether.transfer.TransferCancelledException;
 import org.eclipse.aether.transfer.TransferEvent;
 import org.eclipse.aether.transfer.TransferListener;
@@ -186,16 +190,6 @@ public class MavenModuleSetBuild extends AbstractMavenBuild<MavenModuleSet,Maven
                 mvn = mvn.forNode(node, log);
                 mvn.buildEnvVars(envs);
             }
-        }
-
-        MavenModule root = getProject().getRootModule();
-        if (root!=null) {// I don't think it can ever be null but let's be defensive
-            // TODO: this needs to be documented but where?
-            envs.putIfNotNull("POM_DISPLAYNAME", root.getDisplayName());
-            envs.putIfNotNull("POM_VERSION", root.getVersion());
-            envs.putIfNotNull("POM_GROUPID", root.getGroupId());
-            envs.putIfNotNull("POM_ARTIFACTID", root.getArtifactId());
-            envs.putIfNotNull("POM_PACKAGING", root.getPackaging());
         }
 
         return envs;
@@ -650,13 +644,18 @@ public class MavenModuleSetBuild extends AbstractMavenBuild<MavenModuleSet,Maven
                 LOGGER.fine(getFullDisplayName()+" is building with mavenVersion " + mavenVersion + " from file " + mavenInformation.getVersionResourcePath());
                 
                 if(!project.isAggregatorStyleBuild()) {
-                    parsePoms(listener, logger, envVars, mvn, mavenVersion, mavenBuildInformation);
+                    logger.println("Parsing POMs");
+                    parsePoms(listener, logger, envVars, mvn, mavenVersion, mavenBuildInformation, false);
                     // start module builds
                     logger.println("Triggering "+project.getRootModule().getModuleName());
                     project.getRootModule().scheduleBuild(new UpstreamCause((Run<?,?>)MavenModuleSetBuild.this));
                 } else {
                     // do builds here
                     try {
+                        if (project.isParsePomsEarly()) {
+                            logger.println("Parsing POMs (early pass)");
+                            parsePoms(listener, logger, envVars, mvn, mavenVersion, mavenBuildInformation, true);
+                        }
                         List<BuildWrapper> wrappers = new ArrayList<>();
                         for (BuildWrapper w : project.getBuildWrappersList())
                             wrappers.add(w);
@@ -689,7 +688,8 @@ public class MavenModuleSetBuild extends AbstractMavenBuild<MavenModuleSet,Maven
                         // reflect changes made to environment variables via BuildWrappers and other EnvironmentContributingActions
                         envVars = getEnvironment(listener);
 
-                        parsePoms(listener, logger, envVars, mvn, mavenVersion, mavenBuildInformation); // #5428 : do pre-build *before* parsing pom
+                        logger.println("Parsing POMs");
+                        parsePoms(listener, logger, envVars, mvn, mavenVersion, mavenBuildInformation, false); // #5428 : do pre-build *before* parsing pom
                         SplittableBuildListener slistener = new SplittableBuildListener(listener);
                         proxies = new HashMap<>();
                         List<ModuleName> changedModules = new ArrayList<>();
@@ -986,12 +986,12 @@ public class MavenModuleSetBuild extends AbstractMavenBuild<MavenModuleSet,Maven
             return unbuiltModules;
         }
 
-        private void parsePoms(BuildListener listener, PrintStream logger, EnvVars envVars, MavenInstallation mvn, String mavenVersion, MavenBuildInformation mavenBuildInformation) throws IOException, InterruptedException {
-            logger.println("Parsing POMs");
-
+        private EnvVars parsePoms(BuildListener listener, PrintStream logger, EnvVars envVars, MavenInstallation mvn, 
+                String mavenVersion, MavenBuildInformation mavenBuildInformation, boolean earlyParse) 
+                        throws IOException, InterruptedException {
             List<PomInfo> poms;
             try {
-                PomParser.Result result = getModuleRoot().act(new PomParser(listener, mvn, mavenVersion, envVars, MavenModuleSetBuild.this));
+                PomParser.Result result = getModuleRoot().act(new PomParser(listener, mvn, mavenVersion, envVars, MavenModuleSetBuild.this, earlyParse));
                 poms = result.infos;
                 mavenBuildInformation.modelParents.putAll(result.modelParents);
             } catch (IOException e) {
@@ -1069,6 +1069,26 @@ public class MavenModuleSetBuild extends AbstractMavenBuild<MavenModuleSet,Maven
             // module builds must start with this build's number
             for (MavenModule m : modules.values())
                 m.updateNextBuildNumber(getNumber());
+
+            MavenModule root = project.getRootModule();
+            if (root!=null) {// I don't think it can ever be null but let's be defensive
+                // TODO: this needs to be documented but where?
+                MavenModuleSetBuild.this.removeActions(VariableInjectionAction.class);
+                setEnvironmentVariable("POM_DISPLAYNAME", root.getDisplayName());
+                setEnvironmentVariable("POM_VERSION", root.getVersion());
+                setEnvironmentVariable("POM_GROUPID", root.getGroupId());
+                setEnvironmentVariable("POM_ARTIFACTID", root.getArtifactId());
+                setEnvironmentVariable("POM_PACKAGING", root.getPackaging());
+                // this is necessary to actually update the environment
+                envVars = getEnvironment(listener);
+            }
+            return envVars;
+        }
+
+        private void setEnvironmentVariable(String key, String value) {
+            if (!Strings.isNullOrEmpty(value)) {
+                MavenModuleSetBuild.this.addAction(new VariableInjectionAction(key, value));
+            }
         }
 
         protected void post2(BuildListener listener) throws Exception {
@@ -1163,7 +1183,8 @@ public class MavenModuleSetBuild extends AbstractMavenBuild<MavenModuleSet,Maven
 
         private final PlexusModuleContributor plexusContributors;
         
-        PomParser(BuildListener listener, MavenInstallation mavenHome, String mavenVersion, EnvVars envVars, MavenModuleSetBuild build) throws IOException, InterruptedException {
+        PomParser(BuildListener listener, MavenInstallation mavenHome, String mavenVersion, EnvVars envVars, 
+                MavenModuleSetBuild build, boolean earlyParse) throws IOException, InterruptedException {
             // project cannot be shipped to the remote JVM, so all the relevant properties need to be captured now.
             MavenModuleSet project = build.getProject();
             this.listener = listener;
@@ -1171,6 +1192,12 @@ public class MavenModuleSetBuild extends AbstractMavenBuild<MavenModuleSet,Maven
             this.rootPOM = project.getRootPOM(envVars); // JENKINS-13822
             this.profiles = project.getProfiles();
             this.properties = project.getMavenProperties();
+            if (earlyParse) {
+                // remove ci-friendly version number overrides
+                this.properties.remove("revision");
+                this.properties.remove("sha1");
+                this.properties.remove("changelist");
+            }
             this.updateSnapshots = isUpdateSnapshots(project.getGoals());
             ParametersDefinitionProperty parametersDefinitionProperty = project.getProperty( ParametersDefinitionProperty.class );
             if (parametersDefinitionProperty != null && parametersDefinitionProperty.getParameterDefinitions() != null) {
@@ -1211,6 +1238,7 @@ public class MavenModuleSetBuild extends AbstractMavenBuild<MavenModuleSet,Maven
                 project.getScm().getModuleRoot( build.getWorkspace(), project.getLastBuild() ).getRemote();
             
             this.mavenValidationLevel = project.getMavenValidationLevel();
+
             plexusContributors = PlexusModuleContributorFactory.aggregate(build);
         }
 
@@ -1262,9 +1290,9 @@ public class MavenModuleSetBuild extends AbstractMavenBuild<MavenModuleSet,Maven
             
             if(verbose)
                 logger.println("Parsing "
-			       + (nonRecursive ? "non-recursively " : "recursively ")
-			       + pom);
-	    
+                   + (nonRecursive ? "non-recursively " : "recursively ")
+                   + pom);
+
             File settingsLoc;
 
             if (alternateSettings == null) {
@@ -1291,12 +1319,13 @@ public class MavenModuleSetBuild extends AbstractMavenBuild<MavenModuleSet,Maven
             try {
                 MavenEmbedderRequest mer = new MavenEmbedderRequest( listener, mavenHome.getHomeDir(),
                                                                                       profiles, properties,
-                                                                                      privateRepository, settingsLoc );
+                                                                                      privateRepository, settingsLoc, 
+                                                                                      new File(workspaceProper) );
                 mer.setTransferListener(new SimpleTransferListener(listener));
                 mer.setUpdateSnapshots(this.updateSnapshots);
-                
                 mer.setProcessPlugins(this.processPlugins);
                 mer.setResolveDependencies(this.resolveDependencies);
+
                 if (globalSettings != null) {
                     mer.setGlobalSettings(new File(globalSettings));
                 }
@@ -1324,11 +1353,8 @@ public class MavenModuleSetBuild extends AbstractMavenBuild<MavenModuleSet,Maven
                 if (this.mavenValidationLevel >= 0) {
                     mer.setValidationLevel(this.mavenValidationLevel);
                 }
-                
-                //mavenEmbedderRequest.setClassLoader( MavenEmbedderUtils.buildClassRealm( mavenHome.getHomeDir(), null, null ) );
-                
+
                 MavenEmbedder embedder = MavenUtil.createEmbedder( mer );
-                
                 MavenProject rootProject = null;
                 
                 List<MavenProject> mps = new ArrayList<>(0);
@@ -1549,5 +1575,39 @@ public class MavenModuleSetBuild extends AbstractMavenBuild<MavenModuleSet,Maven
                     transferEvent.getResource().getResourceName()) );
         }
         
+    }
+
+    static class VariableInjectionAction implements EnvironmentContributingAction {
+
+        private String key;
+        private String value;
+
+        public VariableInjectionAction(String key, String value) {
+            this.key = key;
+            this.value = value;
+        }
+
+        @Override
+        public void buildEnvVars(AbstractBuild<?, ?> build, EnvVars envVars) {
+
+            if (envVars != null && key != null && value != null) {
+                envVars.put(key, value);
+            }
+        }
+
+        @Override
+        public String getDisplayName() {
+            return "VariableInjectionAction";
+        }
+
+        @Override
+        public String getIconFileName() {
+            return null;
+        }
+
+        @Override
+        public String getUrlName() {
+            return null;
+        }
     }
 }

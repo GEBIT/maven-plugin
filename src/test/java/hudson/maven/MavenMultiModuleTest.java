@@ -465,7 +465,7 @@ public class MavenMultiModuleTest {
 
     @Bug(17713)
     @Test public void modulesPageLinks() throws Exception {
-        ToolInstallations.configureMaven3();
+        AbstractMaven3xBuildTest.configureMaven3();
         MavenModuleSet ms = j.jenkins.createProject(MavenModuleSet.class, "p");
         ms.setScm(new ExtractResourceSCM(getClass().getResource("maven-multimod.zip")));
         j.buildAndAssertSuccess(ms);
@@ -518,7 +518,7 @@ public class MavenMultiModuleTest {
     @Issue("JENKINS-24832")
     @Test
     public void testMultiModulesFailureWithParallelThreads() throws Exception {
-        ToolInstallations.configureMaven3();
+        AbstractMaven3xBuildTest.configureMaven3();
         MavenModuleSet project = j.createProject(MavenModuleSet.class, "mp");
         project.setScm(new ExtractResourceSCM(getClass().getResource("maven-multimod-failure.zip")));
         // Without the parallel option it is correctly failing

@@ -25,9 +25,12 @@ import hudson.model.BuildListener;
 import hudson.model.ParametersDefinitionProperty;
 import hudson.model.Result;
 import hudson.model.StringParameterDefinition;
+import hudson.tasks.Maven;
 import hudson.tasks.Maven.MavenInstallation;
 import hudson.tasks.test.AbstractTestResultAction;
 import hudson.tasks.test.TestResultProjectAction;
+import jenkins.model.Jenkins;
+
 import org.apache.commons.io.FileUtils;
 import org.junit.Rule;
 import org.junit.Test;
@@ -40,6 +43,8 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.*;
 import org.jvnet.hudson.test.Issue;
+import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.ToolInstallations;
 
 import static org.junit.Assert.*;
 import org.junit.Ignore;
@@ -326,5 +331,11 @@ public abstract class AbstractMaven3xBuildTest {
             return true;
         }
     }
-    
+
+    public static Maven.MavenInstallation configureMaven3() throws Exception {
+        Maven.MavenInstallation mvn = ToolInstallations.configureDefaultMaven("apache-maven-3.3.9", Maven.MavenInstallation.MAVEN_30);
+        Maven.MavenInstallation m3 = new Maven.MavenInstallation("apache-maven-3.3.9", mvn.getHome(), JenkinsRule.NO_PROPERTIES);
+        Jenkins.getInstance().getDescriptorByType(Maven.DescriptorImpl.class).setInstallations(m3);
+        return m3;
+	}
 }

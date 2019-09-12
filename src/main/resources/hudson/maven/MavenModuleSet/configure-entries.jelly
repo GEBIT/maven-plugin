@@ -98,7 +98,10 @@ THE SOFTWARE.
       <f:entry title="MAVEN_OPTS" help="/plugin/maven-plugin/maven-opts.html">
         <f:expandableTextbox name="mavenOpts" value="${it.mavenOpts}" />
       </f:entry>
-      		
+      <f:optionalBlock name="maven.parsePomsEarly"
+                       title="${%Parse POMs early}"
+                       help="/plugin/maven-plugin/parsePomsEarly.html"
+                       checked="${it.isParsePomsEarly()}" />
       <f:optionalBlock name="maven.incrementalBuild"
                        title="${%Incremental build - only build changed modules}"
                        help="/plugin/maven-plugin/incremental.html"

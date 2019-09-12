@@ -45,7 +45,7 @@ public class MavenBuildSurefireFailedTest extends AbstractMavenTestCase {
     @Bug(8415)
     public void testMaven3Unstable() throws Exception {
         MavenModuleSet m = jenkins.createProject(MavenModuleSet.class, "p");
-        m.setMaven( ToolInstallations.configureMaven3().getName() );
+        m.setMaven( AbstractMaven3xBuildTest.configureMaven3().getName() );
         m.setGoals( "test" );
         m.setScm(new ExtractResourceSCM(getClass().getResource("maven-multimodule-unit-failure.zip")));
         assertBuildStatus(Result.UNSTABLE, m.scheduleBuild2(0).get());
@@ -54,7 +54,7 @@ public class MavenBuildSurefireFailedTest extends AbstractMavenTestCase {
     @Bug(8415)
     public void testMaven3Failed() throws Exception {
         MavenModuleSet m = jenkins.createProject(MavenModuleSet.class, "p");
-        m.setMaven( ToolInstallations.configureMaven3().getName() );
+        m.setMaven( AbstractMaven3xBuildTest.configureMaven3().getName() );
         m.setGoals( "test -Dmaven.test.failure.ignore=false" );
         m.setScm(new ExtractResourceSCM(getClass().getResource("maven-multimodule-unit-failure.zip")));
         assertBuildStatus(Result.FAILURE, m.scheduleBuild2(0).get());
@@ -63,7 +63,7 @@ public class MavenBuildSurefireFailedTest extends AbstractMavenTestCase {
     @Bug(14102)
     public void testMaven3SkipPostBuilder() throws Exception {
         MavenModuleSet m = jenkins.createProject(MavenModuleSet.class, "p");
-        m.setMaven( ToolInstallations.configureMaven3().getName() );
+        m.setMaven( AbstractMaven3xBuildTest.configureMaven3().getName() );
         m.setGoals( "test" );
         m.setScm(new ExtractResourceSCM(getClass().getResource("maven-multimodule-unit-failure.zip")));
         // run dummy command only if build state is SUCCESS
