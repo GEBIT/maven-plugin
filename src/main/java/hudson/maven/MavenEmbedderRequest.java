@@ -53,7 +53,9 @@ public class MavenEmbedderRequest
     private File alternateSettings;
 
     private TransferListener transferListener;
-    
+
+    private File workspace;
+
     /**
      * The classloader used to create Maven embedder.
      *
@@ -113,13 +115,14 @@ public class MavenEmbedderRequest
      *      Optional alternate settings.xml file.
      */
     public MavenEmbedderRequest( TaskListener listener, File mavenHome, String profiles, Properties systemProperties,
-                                 String privateRepository, File alternateSettings ) {
+                                 String privateRepository, File alternateSettings, File workspace ) {
         this.listener = listener;
         this.mavenHome = mavenHome;
         this.profiles = profiles;
         this.systemProperties = systemProperties;
         this.privateRepository = privateRepository;
         this.alternateSettings = alternateSettings;
+        this.workspace = workspace;
     }
 
     public TaskListener getListener() {
@@ -263,6 +266,14 @@ public class MavenEmbedderRequest
       return updateSnapshots;
     }
 
+    public MavenEmbedderRequest setWorkspace(File workspace) {
+        this.workspace = workspace;
+        return this;
+    }
+
+    public File getWorkspace() {
+        return workspace;
+    }
 
     /**
      * When we run in Jetty during development, embedded Maven will end up

@@ -206,6 +206,7 @@ public class RedeployPublisher extends Recorder {
         String profiles = null;
         Properties systemProperties = null;
         String privateRepository = null;
+        File workspace = null;
 
         File tmpSettings = File.createTempFile( "jenkins", "temp-settings.xml" );
         File tmpSettingsGlobal = File.createTempFile( "jenkins", "temp-global-settings.xml" );
@@ -242,6 +243,7 @@ public class RedeployPublisher extends Recorder {
                     buildNode = Jenkins.get();
                 }
 
+                workspace = new File(mavenModuleSet.getWorkspace().getRemote());
                 EnvVars envVars = build.getEnvironment(listener);
                 for (Entry<Object, Object> entry : systemProperties.entrySet()) {
                     // expand variables in goals
@@ -300,7 +302,8 @@ public class RedeployPublisher extends Recorder {
                                   profiles,
                                   systemProperties,
                                   privateRepository,
-                                  settingsLoc );
+                                  settingsLoc,
+                                  workspace);
 
             if (remoteGlobalSettingsFromConfig != null) {
                 mavenEmbedderRequest.setGlobalSettings( remoteGlobalSettingsFromConfig );

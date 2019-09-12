@@ -317,6 +317,7 @@ public class RedeployFixUtils {
 		String profiles = null;
 		Properties systemProperties = null;
 		String privateRepository = null;
+		File workspace = null;
 
 		File tmpSettings = File.createTempFile("jenkins", "temp-settings.xml");
 		File tmpSettingsGlobal = File.createTempFile("jenkins", "temp-global-settings.xml");
@@ -361,6 +362,7 @@ public class RedeployFixUtils {
 				}
 
 				FilePath buildRootDir = getBuildDirOnMaster(build);
+				workspace = new File(buildRootDir.getRemote());
 				FilePath archivedSettingsFile = new FilePath(buildRootDir, ARCHIVED_REDEPLOY_SETTINGS_RELATIVE_PATH);
 				if (archivedSettingsFile.exists()) {
 					listener.getLogger().println("Using archived maven settings.xml");
@@ -432,7 +434,7 @@ public class RedeployFixUtils {
 			}
 
 			MavenEmbedderRequest mavenEmbedderRequest = new MavenEmbedderRequest(listener,
-					m != null ? m.getHomeDir() : null, profiles, systemProperties, privateRepository, settingsLoc);
+					m != null ? m.getHomeDir() : null, profiles, systemProperties, privateRepository, settingsLoc, workspace);
 
 			if (remoteGlobalSettingsFromConfig != null) {
 				mavenEmbedderRequest.setGlobalSettings(remoteGlobalSettingsFromConfig);

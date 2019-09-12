@@ -58,11 +58,7 @@ public abstract class AbstractMavenBuild<P extends AbstractMavenProject<P,B>,B e
 
         for (EnvironmentContributingAction a : Util.filter(getProject().getActions(), EnvironmentContributingAction.class)) {
             try {
-                try { // TODO remove reflection when on 2.76+
-                    EnvironmentContributingAction.class.getMethod("buildEnvironment", Run.class, EnvVars.class).invoke(a, this, envs);
-                } catch (NoSuchMethodException x) {
-                    EnvironmentContributingAction.class.getMethod("buildEnvVars", AbstractBuild.class, EnvVars.class).invoke(a, this, envs);
-                }
+                a.buildEnvironment(this, envs);
             } catch (Exception x) {
                 LOGGER.log(Level.WARNING, null, x);
             }

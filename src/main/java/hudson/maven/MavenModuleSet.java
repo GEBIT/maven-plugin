@@ -192,6 +192,18 @@ public class MavenModuleSet extends AbstractMavenProject<MavenModuleSet,MavenMod
     private boolean incrementalBuild = false;
 
     /**
+	 * If true, POMs are parsed early in the build process to make the information on the project available to all pre
+	 * steps (e.g. <code>POM_VERSION</code>).
+	 * <p>
+	 * All <a href="https://maven.apache.org/maven-ci-friendly.html">CI Friendly Version Parameters</a> are filtered
+	 * out, so it will reflect the original coordinates (or ones computed by some Maven core extension). The information
+	 * is then updated for the main build step again,so if you set some specific version that will be applied.
+	 *
+	 * @since 2.4
+	 */
+    private boolean parsePomsEarly = false;
+
+    /**
      * If true, the build will use its own local Maven repository
      * via "-Dmaven.repo.local=...".
      * <p>
@@ -562,6 +574,10 @@ public class MavenModuleSet extends AbstractMavenProject<MavenModuleSet,MavenMod
         };
     }
 
+    public boolean isParsePomsEarly() {
+        return parsePomsEarly;
+    }
+
     public boolean isIncrementalBuild() {
         return incrementalBuild;
     }
@@ -615,6 +631,10 @@ public class MavenModuleSet extends AbstractMavenProject<MavenModuleSet,MavenMod
 
     public void setAggregatorStyleBuild(boolean aggregatorStyleBuild) {
         this.aggregatorStyleBuild = aggregatorStyleBuild;
+    }
+
+    public void setParsePomsEarly(boolean parsePomsEarly) {
+    	this.parsePomsEarly = parsePomsEarly;
     }
 
     /**
@@ -1232,6 +1252,7 @@ public class MavenModuleSet extends AbstractMavenProject<MavenModuleSet,MavenMod
         }
         runHeadless = req.hasParameter("maven.runHeadless");
         incrementalBuild = req.hasParameter("maven.incrementalBuild");
+        parsePomsEarly = req.hasParameter("maven.parsePomsEarly");
         archivingDisabled = req.hasParameter("maven.archivingDisabled");
         siteArchivingDisabled = req.hasParameter("maven.siteArchivingDisabled");
         fingerprintingDisabled = req.hasParameter("maven.fingerprintingDisabled");

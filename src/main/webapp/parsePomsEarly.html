@@ -1,0 +1,12 @@
+<div>
+  <p>
+  If checked, POMs are parsed early in the build process to make the information on the project available to 
+  all pre steps (e.g. <code>POM_VERSION</code>).
+  </p>
+  <p>
+  All <a href="https://maven.apache.org/maven-ci-friendly.html">CI Friendly Version Parameters</a>
+  are filtered out, so it will reflect the original coordinates (or ones computed by some Maven core extension).
+  The information is then updated for the main build step again,
+  so if you set some specific version that will be applied. 
+  </p>
+</div>
