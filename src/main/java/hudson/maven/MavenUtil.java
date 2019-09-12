@@ -89,6 +89,7 @@ public class MavenUtil {
         String profiles = null;
         Properties systemProperties = null;
         String privateRepository = null;
+        File workspace = null;
         
         AbstractProject<?,?> project = build.getProject();
         
@@ -108,6 +109,7 @@ public class MavenUtil {
 
             profiles = ((MavenModuleSet) project).getProfiles();
             systemProperties = ((MavenModuleSet) project).getMavenProperties();
+            workspace = new File(build.getWorkspace().getRemote());
         }
         
         return createEmbedder(new MavenEmbedderRequest(listener,
@@ -115,7 +117,8 @@ public class MavenUtil {
                               profiles,
                               systemProperties,
                               privateRepository,
-                              settingsLoc ));
+                              settingsLoc,
+                              workspace));
     }
 
     public static MavenEmbedder createEmbedder(TaskListener listener, File mavenHome, String profiles) throws MavenEmbedderException, IOException {
@@ -131,7 +134,7 @@ public class MavenUtil {
         throws MavenEmbedderException, IOException
     {
         return createEmbedder( new MavenEmbedderRequest( listener, mavenHome, profiles, systemProperties,
-                                                         privateRepository, null ) );
+                                                         privateRepository, null, null ) );
     }
 
     /**
@@ -189,12 +192,13 @@ public class MavenUtil {
 
         mavenRequest.setMavenLoggerManager( new Slf4jLoggerManager() );
 
+        mavenRequest.setBaseDirectory(mer.getWorkspace().getAbsolutePath());
+
         //mavenRequest.setContainerClassPathScanning( PlexusConstants.SCANNING_OFF );
 
         //mavenRequest.setContainerComponentVisibility( PlexusConstants.GLOBAL_VISIBILITY );
 
         ClassLoader mavenEmbedderClassLoader = mer.getClassLoader();
-
         {// are we loading the right components.xml? (and not from Maven that's running Jetty, if we are running in "mvn hudson-dev:run" or "mvn hpi:run"?
             Enumeration<URL> e = mavenEmbedderClassLoader.getResources("META-INF/plexus/components.xml");
             while (e.hasMoreElements()) {
@@ -206,7 +210,7 @@ public class MavenUtil {
         mavenRequest.setProcessPlugins( mer.isProcessPlugins() );
         mavenRequest.setResolveDependencies( mer.isResolveDependencies() );
         mavenRequest.setValidationLevel( mer.getValidationLevel() );
-            
+
         // TODO check this MaskingClassLoader with maven 3 artifacts
         MavenEmbedder maven = new MavenEmbedder( mavenEmbedderClassLoader, mavenRequest );
 

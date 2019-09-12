@@ -45,7 +45,7 @@ THE SOFTWARE.
   <properties>
     <jenkins.version>2.176.4</jenkins.version>
     <java.level>8</java.level>
-    <mavenInterceptorsVersion>1.13</mavenInterceptorsVersion>
+    <mavenInterceptorsVersion>1.13-gebit1</mavenInterceptorsVersion>
     <!-- Version of Maven Components -->
     <mavenVersion>3.5.2</mavenVersion>
     <!--
@@ -620,7 +620,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.jenkins-ci.lib</groupId>
       <artifactId>lib-jenkins-maven-artifact-manager</artifactId>
-      <version>1.2</version>
+      <version>1.3-gebit1</version>
     </dependency>
     <dependency>
       <!-- TODO: fix exclusion once updated to the 3.5.0 baseline -->
