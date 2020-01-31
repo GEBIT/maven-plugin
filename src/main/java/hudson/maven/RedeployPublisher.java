@@ -56,6 +56,7 @@ import jenkins.mvn.SettingsProvider;
 import jenkins.security.MasterToSlaveCallable;
 import net.sf.json.JSONObject;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.artifact.deployer.ArtifactDeploymentException;
@@ -70,6 +71,8 @@ import org.apache.maven.repository.Proxy;
 import org.codehaus.plexus.component.repository.exception.ComponentLookupException;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
+
+import com.google.common.io.Files;
 
 /**
  * {@link Publisher} for {@link MavenModuleSetBuild} to deploy artifacts
@@ -152,8 +155,27 @@ public class RedeployPublisher extends Recorder {
 
         long startupTime = System.currentTimeMillis();
 
+        File tmpLocalRepository = null;
+        String tmpLocalRepositoryPath = null;
+		try {
+			tmpLocalRepository = Files.createTempDir();
+			tmpLocalRepositoryPath = tmpLocalRepository.getAbsolutePath();
+			listener.getLogger()
+					.println("Maven RedeployPublisher has created temporary directory for local repository at "
+							+ tmpLocalRepositoryPath);
+		} catch (Exception exc) {
+			listener.getLogger()
+					.println("[WARN] Maven RedeployPublisher couldn't create temporary directory for local repository. "
+							+ "Reason: "
+							+ exc.getMessage());
+		}
         try {
-            MavenEmbedder embedder = createEmbedder(listener, build);
+            MavenEmbedder embedder = createEmbedder(listener, build, tmpLocalRepositoryPath);
+            ArtifactRepository privateRepository = embedder.getLocalRepository();
+			if (privateRepository != null) {
+				listener.getLogger()
+						.println("Maven RedeployPublisher uses local repository at " + privateRepository.getBasedir());
+            }
             ArtifactRepositoryLayout layout =
                     (ArtifactRepositoryLayout) embedder.lookup(ArtifactRepositoryLayout.ROLE, "default");
             ArtifactRepositoryFactory factory =
@@ -180,7 +202,23 @@ public class RedeployPublisher extends Recorder {
             return true;
         } catch (MavenEmbedderException | ComponentLookupException | ArtifactDeploymentException e) {
             e.printStackTrace(listener.error(e.getMessage()));
-        }
+        } finally {
+			if (tmpLocalRepository != null) {
+				try {
+					FileUtils.deleteDirectory(tmpLocalRepository);
+					listener.getLogger()
+							.println("Maven RedeployPublisher has deleted temporary directory for local repository at "
+									+ tmpLocalRepositoryPath);
+				} catch (Exception exc) {
+					listener.getLogger()
+							.println("[WARN] Maven RedeployPublisher couldn't delete temporary directory for local "
+									+ "repository at "
+									+ tmpLocalRepositoryPath
+									+ ". Reason: "
+									+ exc.getMessage());
+				}
+			}
+		}
         // failed
         build.setResult(Result.FAILURE);
         listener.getLogger().println("[INFO] Deployment failed after " + Util.getTimeSpanString(System.currentTimeMillis() - startupTime));
@@ -200,12 +238,13 @@ public class RedeployPublisher extends Recorder {
      * from the remote node and can not exist in master see http://issues.jenkins-ci.org/browse/JENKINS-8711
      * 
      */
-    private MavenEmbedder createEmbedder(TaskListener listener, AbstractBuild<?,?> build) throws MavenEmbedderException, IOException, InterruptedException {
+    private MavenEmbedder createEmbedder(TaskListener listener, AbstractBuild<?,?> build, String localRepositoryPath)
+    		throws MavenEmbedderException, IOException, InterruptedException {
         MavenInstallation m=null;
         File settingsLoc = null, remoteGlobalSettingsFromConfig = null;
         String profiles = null;
         Properties systemProperties = null;
-        String privateRepository = null;
+        String privateRepository = localRepositoryPath;
         File workspace = null;
 
         File tmpSettings = File.createTempFile( "jenkins", "temp-settings.xml" );
@@ -278,8 +317,11 @@ public class RedeployPublisher extends Recorder {
                     String settingsPath = mavenHome + "/conf/settings.xml";
                     remoteSettings = build.getWorkspace().child( settingsPath);
                 }
-                listener.getLogger().println( "Maven RedeployPublisher use remote " + (buildNode != null ? buildNode.getNodeName() : "local" )
-                                              + " maven settings from : " + remoteSettings.getRemote() );
+				listener.getLogger()
+						.println("Maven RedeployPublisher uses remote "
+								+ (buildNode != null ? buildNode.getNodeName() : "local")
+								+ " maven settings from : "
+								+ remoteSettings.getRemote());
                 remoteSettings.copyTo( filePath );
                 settingsLoc = tmpSettings;
 
@@ -289,8 +331,11 @@ public class RedeployPublisher extends Recorder {
                     FilePath filePathGlobal = new FilePath( tmpSettingsGlobal );
                     FilePath remoteSettingsGlobal = build.getWorkspace().child( remoteGlobalSettingsPath );
 
-                    listener.getLogger().println( "Maven RedeployPublisher use remote " + (buildNode != null ? buildNode.getNodeName() : "local" )
-                              + " maven global settings from : " + remoteSettingsGlobal.getRemote() );
+					listener.getLogger()
+							.println("Maven RedeployPublisher uses remote "
+									+ (buildNode != null ? buildNode.getNodeName() : "local")
+									+ " maven global settings from : "
+									+ remoteSettingsGlobal.getRemote());
                     remoteSettingsGlobal.copyTo( filePathGlobal );
                     remoteGlobalSettingsFromConfig = tmpSettingsGlobal;
                 }
