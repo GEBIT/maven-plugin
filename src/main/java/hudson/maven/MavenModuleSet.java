@@ -946,10 +946,20 @@ public class MavenModuleSet extends AbstractMavenProject<MavenModuleSet,MavenMod
 //      }
         
         super.buildDependencyGraph(graph);
-        publishers.buildDependencyGraph(this,graph);
-        buildWrappers.buildDependencyGraph(this,graph);
-        prebuilders.buildDependencyGraph(this,graph);
-        postbuilders.buildDependencyGraph(this,graph);
+        // this method may be called before onLoad() has finished, so
+        // any of these may be null:
+        if (publishers != null) {
+        	publishers.buildDependencyGraph(this,graph);
+        }
+        if (buildWrappers != null) {
+        	buildWrappers.buildDependencyGraph(this,graph);
+        }
+        if (prebuilders != null) {
+        	prebuilders.buildDependencyGraph(this,graph);
+        }
+        if (postbuilders != null) {
+        	postbuilders.buildDependencyGraph(this,graph);
+        }
     }
     
     public boolean isDisableTriggerDownstreamProjects() {
