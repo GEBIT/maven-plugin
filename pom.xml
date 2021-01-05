@@ -48,7 +48,7 @@ THE SOFTWARE.
     <gitHubRepo>jenkinsci/maven-plugin</gitHubRepo>
     <jenkins.version>2.204.6</jenkins.version>
     <java.level>8</java.level>
-    <mavenInterceptorsVersion>1.13-gebit1</mavenInterceptorsVersion>
+    <mavenInterceptorsVersion>1.14-gebit1</mavenInterceptorsVersion>
     <!-- Version of Maven Components -->
     <mavenVersion>3.5.2</mavenVersion>
     <!--
