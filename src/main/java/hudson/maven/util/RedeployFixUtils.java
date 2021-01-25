@@ -270,7 +270,7 @@ public class RedeployFixUtils {
 				}
 			}
 
-			for (NodeProperty nodeProperty : Jenkins.getInstance().getGlobalNodeProperties()) {
+			for (NodeProperty nodeProperty : Jenkins.get().getGlobalNodeProperties()) {
 				Environment environment = nodeProperty.setUp(build, l, buildListener);
 				if (environment != null) {
 					buildEnvironments.add(environment);
@@ -291,10 +291,7 @@ public class RedeployFixUtils {
 					wrappers.add(w);
 				}
 				for (BuildWrapper w : wrappers) {
-					// skip EnvInjectBuildWrapper that can overwrite sensible environments with
-					// masked
-					// values from the file
-					if (!w.getClass().getSimpleName().equals("EnvInjectBuildWrapper")) {
+					if (w.getClass().getName().equals("org.jenkinsci.plugins.credentialsbinding.impl.SecretBuildWrapper")) {
 						Environment e = w.setUp(mvnBuild, l, buildListener);
 						if (e != null) {
 							buildEnvironments.add(e);
